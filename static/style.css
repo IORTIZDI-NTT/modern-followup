@@ -102,6 +102,7 @@ tfoot th { color: var(--ink); font-size: 13px; }
 .legend-over { background: #fdeef1; }
 .legend-missing { background: #fce7e7; }
 .legend-absence { background: #f3edfe; }
+.legend-dummy { background: #ebf1fe; }
 .calendar-panel { max-width: 100%; }
 .calendar-table { width: max-content; min-width: 100%; }
 .calendar-table th, .calendar-table td { min-width: 54px; padding: 9px 7px; text-align: center; }
@@ -118,8 +119,10 @@ tfoot th { color: var(--ink); font-size: 13px; }
 .calendar-cell.over { background: #fdeef1; border-left-color: #e11d48; }
 .calendar-cell.missing { background: #fce7e7; border-left-color: #dc2626; }
 .calendar-cell.absence { background: #f3edfe; border-left-color: #7c3aed; }
+.calendar-cell.dummy { background: #ebf1fe; border-left-color: #236ce2; }
 .calendar-cell.weekend { background: #f1f3f8; }
 .calendar-cell .cell-code { color: #6d28d9; }
+.dummy-tag { margin-left: 7px; color: #12306b; background: #dce7fc; }
 tbody tr:hover { background: #f6f9fe; }
 .tag { display: inline-block; padding: 5px 8px; border-radius: 999px; background: #eff4fe; color: #1d4ed8; font-size: 11px; font-weight: 800; }
 .positive { color: var(--teal); font-weight: 800; }

@@ -51,4 +51,5 @@ Para distinguir las personas inactivas marcadas en rojo, el generador utiliza `s
 - Forecast sin ajustes: forecast actual menos el ajuste correspondiente.
 - El bloque de ajustes se alinea por posición con Forecast actual porque sus fechas internas están desplazadas.
 - Solo se agregan personas de la primera tabla de Equipo; las filas rojas se excluyen y las tablas resumen se presentan aparte.
+- El equipo operativo de cada perfil se toma del horario laboral. Los perfiles DUMMY se incluyen en eficiencia y conciliación, pero se presentan separados de empleados activos.
 - Capacidad: horas L–V del horario multiplicadas por los días de cada semana del mes; todavía no descuenta un calendario oficial de festivos.

@@ -21,7 +21,7 @@
   <article class="kpi kpi-primary">
     <span>Forecast actual <button class="info" aria-label="Origen del forecast actual" data-tooltip="Hoja Forecast · fila Total / Net Revenue · bloque FORECAST ACTUAL del mes seleccionado. Ya incluye los ajustes.">i</button></span>
     <strong>{{ kpis.forecast_current|money }}</strong>
-    <small>{{ forecast.totals.change_pct|percent }} frente al forecast anterior</small>
+    <small>{{ kpis.forecast_current_client_hours|hours }} a {{ client_rate|money }}/h · {{ forecast.totals.change_pct|percent }} frente al anterior</small>
   </article>
   <article class="kpi">
     <span>Ajustes incluidos <button class="info" aria-label="Cálculo de ajustes" data-tooltip="Importe del bloque AJUSTES CON BOLSA O REDUCCIONES. Horas a tarifa = ajuste ÷ 28,36 €/h. Horas de equipo = horas a tarifa ÷ eficiencia ponderada por las horas CLIENTE incurridas en cada tarea.">i</button></span>
@@ -31,7 +31,7 @@
   <article class="kpi">
     <span>Horas facturables <button class="info" aria-label="Origen de horas facturables" data-tooltip="Suma directa de Total validado en todas las filas CLIENTE del HTML de incurrido. No se aplica el filtro de personas activas y las horas NTT no se incluyen.">i</button></span>
     <strong>{{ kpis.incurred_hours|hours }}</strong>
-    <small>{{ kpis.active_incurred_hours|hours }} equipo activo · {{ kpis.outside_active_hours|hours }} fuera del equipo activo</small>
+    <small>{{ kpis.employee_client_hours|hours }} empleados · {{ kpis.dummy_hours|hours }} perfiles DUMMY</small>
   </article>
   <article class="kpi">
     <span>Horas pendientes <button class="info" aria-label="Cálculo de horas pendientes" data-tooltip="Para cada persona activa: máximo entre H. NTT planificadas en Equipo menos horas CLIENTE validadas y cero. Después se suman los resultados individuales.">i</button></span>

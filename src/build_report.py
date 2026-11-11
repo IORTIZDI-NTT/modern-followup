@@ -274,16 +274,20 @@ def load_team(path: Path, target: datetime) -> dict[str, Any]:
     inactive_names = inactive_team_names(path, first_row=4, last_row=table_end)
     inactive_normalized = {normalize_name(name) for name in inactive_names}
     people: list[dict[str, Any]] = []
+    inactive_people: list[dict[str, Any]] = []
     for _, row in frame.iloc[3:table_end].iterrows():
         name = str(row.iloc[3]).strip() if pd.notna(row.iloc[3]) else ""
         team = str(row.iloc[1]).strip() if pd.notna(row.iloc[1]) else ""
         unit = str(row.iloc[2]).strip() if pd.notna(row.iloc[2]) else ""
-        if not name or not team or name.lower().startswith(("total", "ajustes")) or normalize_name(name) in inactive_normalized:
+        if not name or not team or name.lower().startswith(("total", "ajustes")):
             continue
-        person = {"name": name, "team": team, "unit": unit}
+        person = {"name": name, "team": team, "task": team, "unit": unit}
         for offset, field in enumerate(fields):
             person[field] = number(row.iloc[start + offset])
-        people.append(person)
+        if normalize_name(name) in inactive_normalized:
+            inactive_people.append(person)
+        else:
+            people.append(person)
     summaries: dict[str, list[dict[str, Any]]] = {}
     for title, key in (("H. POR EQUIPOS", "by_team"), ("H. POR UNIDAD", "by_unit")):
         header_index = next(
@@ -308,7 +312,7 @@ def load_team(path: Path, target: datetime) -> dict[str, Any]:
                 if label == "TOTAL":
                     break
         summaries[key] = summary_rows
-    return {"people": people, "inactive_names": inactive_names, "summaries": summaries}
+    return {"people": people, "inactive_people": inactive_people, "inactive_names": inactive_names, "summaries": summaries}
 
 
 def load_income(path: Path, target: datetime) -> list[dict[str, Any]]:
@@ -463,7 +467,9 @@ def merge_people(
         item = dict(person)
         item.update(income_index.get(name, {}))
         item["name"] = name
-        item.update({key: value for key, value in schedule_index.get(name, {}).items() if key != "name"})
+        schedule_data = schedule_index.get(name, {})
+        item.update({key: value for key, value in schedule_data.items() if key != "name"})
+        item["team"] = str(schedule_data.get("schedule_team") or "SIN EQUIPO")
         item.update({key: value for key, value in incurred_index.get(name, {}).items() if key != "name"})
         for field in ("capacity_hours", "client_hours", "ntt_hours", "incurred_hours", "efficient_hours", "planned_income"):
             item[field] = number(item.get(field))
@@ -501,7 +507,9 @@ def build_calendar(people: list[dict[str, Any]], target: datetime) -> dict[str, 
             actual = number(client_daily.get(day))
             ntt = number(ntt_daily.get(day))
             code = str(daily_codes.get(day, ""))
-            if code:
+            if person.get("is_dummy") and actual > 0:
+                status = "dummy"
+            elif code:
                 status = "absence"
             elif day_info["weekend"] and actual == 0:
                 status = "weekend"
@@ -534,6 +542,7 @@ def build_calendar(people: list[dict[str, Any]], target: datetime) -> dict[str, 
             "client_hours": person["client_hours"],
             "capacity_hours": person["capacity_hours"],
             "difference": person["client_hours"] - person["capacity_hours"],
+            "is_dummy": bool(person.get("is_dummy")),
             "cells": cells,
         })
     return {"days": days, "rows": rows, "daily_totals": daily_totals}
@@ -553,11 +562,26 @@ def build_context(data_dir: Path, target: datetime) -> dict[str, Any]:
         })
     forecast = load_forecast(geco, target)
     team_data = load_team(geco, target)
-    team = team_data["people"]
     income = load_income(geco, target)
     schedule = load_schedule(schedule_file, target)
+    dummy_schedule_names = [row["name"] for row in schedule if row["schedule_team"].strip().upper() == "DUMMY"]
+    dummy_people: list[dict[str, Any]] = []
+    remaining_inactive_names: list[str] = []
+    for person in team_data["inactive_people"]:
+        dummy_match, _ = best_match(person["name"], dummy_schedule_names)
+        if dummy_match:
+            person["is_dummy"] = True
+            dummy_people.append(person)
+        else:
+            remaining_inactive_names.append(person["name"])
+    team = [{**person, "is_dummy": False} for person in team_data["people"]] + dummy_people
     incurred, absences, absence_codes = load_incurred(incurred_file, target)
-    people = merge_people(team, income, schedule, incurred, team_data["inactive_names"], quality)
+    people = merge_people(team, income, schedule, incurred, remaining_inactive_names, quality)
+    missing_team_names = [person["name"] for person in people if person["team"] == "SIN EQUIPO"]
+    if missing_team_names:
+        quality.warnings.append(
+            f"{len(missing_team_names)} perfiles activos de GECO no tienen equipo en el horario laboral."
+        )
     if quality.unmatched_actual:
         quality.warnings.append(f"{len(quality.unmatched_actual)} nombres del incurrido no enlazan automáticamente con Equipo.")
     if quality.unmatched_schedule:
@@ -571,6 +595,7 @@ def build_context(data_dir: Path, target: datetime) -> dict[str, Any]:
     kpis = {
         "forecast_previous": totals["previous"],
         "forecast_current": totals["current"],
+        "forecast_current_client_hours": totals["current"] / CLIENT_RATE if CLIENT_RATE else 0.0,
         "forecast_adjustment": totals["adjustment"],
         "adjustment_client_hours": totals["adjustment"] / CLIENT_RATE if CLIENT_RATE else 0.0,
         "forecast_change": totals["difference"],
@@ -586,18 +611,21 @@ def build_context(data_dir: Path, target: datetime) -> dict[str, Any]:
         "absence_events": len(absences),
     }
     kpis["hours_progress_pct"] = active_client_hours / kpis["planned_hours"] if kpis["planned_hours"] else 0.0
-    billable_hours = sum(person["client_hours"] for person in people)
+    efficiency_people = [person for person in people if not person.get("is_dummy")]
+    billable_hours = sum(person["client_hours"] for person in efficiency_people)
     weighted_efficiency = (
-        sum(person["client_hours"] * person["efficiency"] for person in people) / billable_hours
+        sum(person["client_hours"] * person["efficiency"] for person in efficiency_people) / billable_hours
         if billable_hours else 0.0
     )
     kpis["weighted_efficiency"] = weighted_efficiency
     kpis["adjustment_team_hours"] = (
         kpis["adjustment_client_hours"] / weighted_efficiency if weighted_efficiency else 0.0
     )
+    kpis["dummy_hours"] = sum(person["client_hours"] for person in people if person.get("is_dummy"))
+    kpis["employee_client_hours"] = raw_client_hours - kpis["dummy_hours"]
     task_groups: dict[str, dict[str, float | str]] = {}
     for person in people:
-        if person["client_hours"] <= 0:
+        if person["client_hours"] <= 0 or person.get("is_dummy"):
             continue
         task = str(person.get("role") or person.get("team") or "Sin tarea")
         group = task_groups.setdefault(task, {"task": task, "client_hours": 0.0, "effective_hours": 0.0})
@@ -613,15 +641,31 @@ def build_context(data_dir: Path, target: datetime) -> dict[str, Any]:
             "estimated_income": effective_hours * CLIENT_RATE,
         })
     task_efficiencies.sort(key=lambda item: number(item["client_hours"]), reverse=True)
+    active_people = [person for person in people if not person.get("is_dummy")]
+    dummy_profiles = [person for person in people if person.get("is_dummy")]
+    team_totals: dict[str, dict[str, Any]] = {}
+    for person in people:
+        team_name = person["team"]
+        group = team_totals.setdefault(team_name, {
+            "team": team_name, "profiles": 0, "planned_hours": 0.0,
+            "client_hours": 0.0, "ntt_hours": 0.0, "planned_income": 0.0,
+        })
+        group["profiles"] += 1
+        for field in ("planned_hours", "client_hours", "ntt_hours", "planned_income"):
+            group[field] += number(person.get(field))
+    computed_team_totals = sorted(team_totals.values(), key=lambda item: (-number(item["client_hours"]), item["team"]))
     return {
         "period": target.strftime("%Y-%m"),
         "period_label": period_label(target),
         "generated_at": datetime.now(ZoneInfo("Europe/Madrid")).strftime("%d/%m/%Y %H:%M"),
         "client_rate": CLIENT_RATE,
         "forecast": forecast,
-        "people": people,
+        "people": active_people,
+        "calculation_people": people,
+        "dummy_profiles": dummy_profiles,
+        "computed_team_totals": computed_team_totals,
         "team_summaries": team_data["summaries"],
-        "inactive_count": len(team_data["inactive_names"]),
+        "inactive_count": len(remaining_inactive_names),
         "task_efficiencies": task_efficiencies,
         "calendar": build_calendar(people, target),
         "absences": absences,

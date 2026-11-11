@@ -4,8 +4,8 @@
 <section class="page-title"><p class="eyebrow">Calendario</p><h1>Incurrido diario y horario</h1><p>Horas CLIENTE de cada persona activa contrastadas con su jornada esperada y su eficiencia.</p></section>
 <section class="kpi-grid compact">
   <article class="kpi kpi-primary"><span>Total CLIENTE del HTML</span><strong>{{ kpis.incurred_hours|hours }}</strong><small>Total validado sin filtrar personas</small></article>
-  <article class="kpi"><span>Equipo activo</span><strong>{{ kpis.active_incurred_hours|hours }}</strong><small>{{ kpis.hours_progress_pct|percent }} de {{ kpis.planned_hours|hours }} planificadas</small></article>
-  <article class="kpi"><span>Fuera del equipo activo</span><strong>{{ kpis.outside_active_hours|hours }}</strong><small>Horas facturables conciliadas, no mostradas como personas</small></article>
+  <article class="kpi"><span>Empleados activos</span><strong>{{ kpis.employee_client_hours|hours }}</strong><small>Horas CLIENTE nominales</small></article>
+  <article class="kpi"><span>Perfiles DUMMY</span><strong>{{ kpis.dummy_hours|hours }}</strong><small>Horas adicionales de eficiencia</small></article>
   <article class="kpi"><span>Eficiencia ponderada</span><strong>{{ kpis.weighted_efficiency|percent }}</strong><small>Ponderada por horas CLIENTE activas</small></article>
 </section>
 
@@ -15,6 +15,7 @@
   <span><i class="legend-over"></i> Por encima</span>
   <span><i class="legend-missing"></i> Sin horas CLIENTE</span>
   <span><i class="legend-absence"></i> Ausencia</span>
+  <span><i class="legend-dummy"></i> Perfil DUMMY</span>
 </section>
 
 <section class="panel table-panel calendar-panel"><div class="table-wrap"><table class="calendar-table">
@@ -24,8 +25,8 @@
   <tbody>
     {% for person in calendar.rows %}
     <tr>
-      <td class="sticky-person"><strong>{{ person.name }}</strong><small>{{ person.team }} · {{ person.unit }}</small></td>
-      <td><strong>{{ person.efficiency|percent }}</strong></td>
+      <td class="sticky-person"><strong>{{ person.name }}</strong>{% if person.is_dummy %}<span class="tag dummy-tag">DUMMY</span>{% endif %}<small>{{ person.team }} · {{ person.unit }}</small></td>
+      <td><strong>{{ 'EFI.' if person.is_dummy else person.efficiency|percent }}</strong></td>
       {% for cell in person.cells %}
       <td class="calendar-cell {{ cell.status }}" title="{{ cell.tooltip }}">
         {% if cell.code %}<strong class="cell-code">{{ cell.code }}</strong>{% elif cell.actual %}<strong>{{ cell.actual|decimal }}</strong>{% else %}<span>—</span>{% endif %}
@@ -36,7 +37,7 @@
     </tr>
     {% endfor %}
   </tbody>
-  <tfoot><tr><th class="sticky-person">Total equipo activo</th><th>{{ kpis.weighted_efficiency|percent }}</th>{% for day in calendar.days %}<th>{{ calendar.daily_totals[day.day].actual|decimal }}<small>{{ calendar.daily_totals[day.day].planned|decimal }}</small></th>{% endfor %}<th>{{ kpis.active_incurred_hours|hours }}</th><th>{{ kpis.capacity_hours|hours }}</th><th>{{ (kpis.active_incurred_hours - kpis.capacity_hours)|hours }}</th></tr></tfoot>
+  <tfoot><tr><th class="sticky-person">Total empleados + DUMMY</th><th>{{ kpis.weighted_efficiency|percent }}</th>{% for day in calendar.days %}<th>{{ calendar.daily_totals[day.day].actual|decimal }}<small>{{ calendar.daily_totals[day.day].planned|decimal }}</small></th>{% endfor %}<th>{{ kpis.active_incurred_hours|hours }}</th><th>{{ kpis.capacity_hours|hours }}</th><th>{{ (kpis.active_incurred_hours - kpis.capacity_hours)|hours }}</th></tr></tfoot>
 </table></div></section>
 <aside class="note"><strong>Lectura de cada celda:</strong> el número principal son horas CLIENTE; el número pequeño es el horario esperado. Al pasar el cursor se muestran también las horas NTT.</aside>
 
