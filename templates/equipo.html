@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Equipo · {{ period_label }}{% endblock %}
+{% block content %}
+<section class="page-title"><p class="eyebrow">Equipo</p><h1>Horas, capacidad e ingreso</h1><p>Plan GECO cruzado con las horas CLIENTE facturables y el horario laboral mensual.</p></section>
+<section class="toolbar"><input type="search" placeholder="Buscar persona, equipo o unidad…" data-table-filter="people-table"><span>{{ people|length }} personas activas · {{ inactive_count }} inactivas ocultas</span></section>
+<section class="panel table-panel"><div class="table-wrap"><table id="people-table">
+  <thead><tr><th>Persona</th><th>Equipo</th><th>Plan GECO</th><th>H. cliente</th><th>H. NTT</th><th>Pendiente</th><th>Capacidad</th><th>Eficiencia</th><th>Ingreso plan.</th><th>Facturación*</th></tr></thead>
+  <tbody>
+    {% for person in people %}
+    <tr>
+      <td><strong>{{ person.name }}</strong><small>{{ person.unit }}</small></td>
+      <td><span class="tag">{{ person.team }}</span></td>
+      <td>{{ person.planned_hours|hours }}</td>
+      <td>{{ person.client_hours|hours }}</td>
+      <td>{{ person.ntt_hours|hours }}</td>
+      <td class="{{ 'warning-text' if person.pending_hours > 0 else 'positive' }}">{{ person.pending_hours|hours }}</td>
+      <td>{{ person.capacity_hours|hours }}</td>
+      <td>{{ person.efficiency|percent }}</td>
+      <td>{{ person.planned_income|money }}</td>
+      <td>{{ person.estimated_incurred_income|money }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table></div></section>
+<aside class="note"><strong>* Facturación estimada:</strong> horas CLIENTE validadas × {{ client_rate|money }}/h. El pendiente es el máximo entre plan GECO menos horas CLIENTE y cero; las horas NTT se muestran aparte.</aside>
+
+<section class="page-title section-title"><p class="eyebrow">Resúmenes GECO</p><h2>Agregados de la hoja Equipo</h2><p>Se muestran como referencia, pero no participan en los totales anteriores para evitar duplicar horas.</p></section>
+<section class="split-grid">
+  {% for title, rows in [('Horas por equipo', team_summaries.by_team), ('Horas por unidad', team_summaries.by_unit)] %}
+  <article class="panel table-panel"><div class="panel-head"><div><h2>{{ title }}</h2></div></div><div class="table-wrap"><table>
+    <thead><tr><th>Grupo</th><th>H. NTT</th><th>H. objetivo</th><th>H. GVA</th><th>H. forecast</th></tr></thead>
+    <tbody>{% for row in rows %}<tr class="{{ 'summary-total' if row.label == 'TOTAL' }}"><td><strong>{{ row.label }}</strong></td><td>{{ row.planned_hours|hours }}</td><td>{{ row.objective_hours|hours }}</td><td>{{ row.gva_hours|hours }}</td><td>{{ row.forecast_hours|hours }}</td></tr>{% endfor %}</tbody>
+  </table></div></article>
+  {% endfor %}
+</section>
+{% endblock %}

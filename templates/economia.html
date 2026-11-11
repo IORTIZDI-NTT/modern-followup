@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Economía · {{ period_label }}{% endblock %}
+{% block content %}
+<section class="page-title"><p class="eyebrow">Economía</p><h1>Forecast y ajustes</h1><p>El forecast actual ya incluye los ajustes. Esta vista separa su contribución para entender el escenario con y sin ellos.</p></section>
+<section class="kpi-grid compact">
+  <article class="kpi"><span>Forecast anterior</span><strong>{{ kpis.forecast_previous|money }}</strong></article>
+  <article class="kpi kpi-primary"><span>Forecast actual, con ajustes</span><strong>{{ kpis.forecast_current|money }}</strong></article>
+  <article class="kpi"><span>Ajustes incluidos</span><strong>{{ kpis.forecast_adjustment|money }}</strong><small>{{ kpis.adjustment_client_hours|hours }} a tarifa cliente</small></article>
+  <article class="kpi"><span>Forecast sin ajustes</span><strong>{{ forecast.financials.revenue.without_adjustment|money }}</strong></article>
+</section>
+<section class="panel table-panel">
+  <div class="panel-head"><div><p class="eyebrow">Desglose</p><h2>Proyectos del contrato</h2></div></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Proyecto</th><th>Forecast anterior</th><th>Forecast actual</th><th>Ajustes incluidos</th><th>Actual sin ajustes</th><th>Variación</th></tr></thead>
+    <tbody>
+      {% for project in forecast.projects %}
+      <tr><td><strong>{{ project.project }}</strong></td><td>{{ project.previous|money }}</td><td>{{ project.current|money }}</td><td>{{ project.adjustment|money }}</td><td>{{ project.without_adjustment|money }}</td><td class="{{ 'positive' if project.difference >= 0 else 'negative' }}">{{ project.difference|money }}</td></tr>
+      {% endfor %}
+    </tbody>
+    <tfoot><tr><th>Total</th><th>{{ forecast.totals.previous|money }}</th><th>{{ forecast.totals.current|money }}</th><th>{{ forecast.totals.adjustment|money }}</th><th>{{ forecast.totals.without_adjustment|money }}</th><th>{{ forecast.totals.difference|money }}</th></tr></tfoot>
+  </table></div>
+</section>
+<section class="split-grid">
+  <article class="panel"><p class="eyebrow">Total Costs</p><h2>Costes del forecast</h2><dl class="metric-list light"><div><dt>Sin ajustes</dt><dd>{{ forecast.financials.costs.without_adjustment|money }}</dd></div><div><dt>Con ajustes</dt><dd>{{ forecast.financials.costs.with_adjustment|money }}</dd></div><div><dt>Coste del ajuste</dt><dd>{{ forecast.financials.costs.adjustment|money }}</dd></div></dl></article>
+  <article class="panel"><p class="eyebrow">Contract Margin</p><h2>Margen del contrato</h2><dl class="metric-list light"><div><dt>Sin ajustes</dt><dd>{{ forecast.financials.margin.without_adjustment|money }}<small>{{ forecast.financials.margin.without_pct|percent }}</small></dd></div><div><dt>Con ajustes</dt><dd>{{ forecast.financials.margin.with_adjustment|money }}<small>{{ forecast.financials.margin.with_pct|percent }}</small></dd></div><div><dt>Margen del ajuste</dt><dd>{{ forecast.financials.margin.adjustment|money }}</dd></div></dl></article>
+</section>
+<section class="panel table-panel">
+  <div class="panel-head"><div><p class="eyebrow">Eficiencias</p><h2>Ponderación por tarea</h2></div><span>Eficiencia global {{ kpis.weighted_efficiency|percent }}</span></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Tarea</th><th>Horas CLIENTE</th><th>Horas eficientes</th><th>Eficiencia ponderada</th><th>Ingreso equivalente</th></tr></thead>
+    <tbody>{% for row in task_efficiencies %}<tr><td><strong>{{ row.task }}</strong></td><td>{{ row.client_hours|hours }}</td><td>{{ row.effective_hours|hours }}</td><td>{{ row.efficiency|percent }}</td><td>{{ row.estimated_income|money }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+<aside class="note"><strong>Criterio aplicado:</strong> el forecast actual es el escenario final con ajustes. El escenario sin ajustes se obtiene restando su ingreso y coste al actual.</aside>
+{% endblock %}

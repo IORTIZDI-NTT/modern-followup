@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Resumen · {{ period_label }}{% endblock %}
+{% block content %}
+<section class="hero">
+  <div>
+    <p class="eyebrow">Seguimiento mensual</p>
+    <h1>Estado del contrato<br><span>{{ period_label }}</span></h1>
+  </div>
+  <div class="hero-status">
+    <span class="status-dot"></span>
+    Datos procesados
+    <strong>{{ quality.sources|length }} fuentes</strong>
+  </div>
+</section>
+
+{% if quality.warnings %}
+<aside class="alert"><strong>{{ quality.warnings|length }} avisos de calidad.</strong> Revisa la página <a href="calidad.html">Datos</a>.</aside>
+{% endif %}
+
+<section class="kpi-grid">
+  <article class="kpi kpi-primary">
+    <span>Forecast actual <button class="info" aria-label="Origen del forecast actual" data-tooltip="Hoja Forecast · fila Total / Net Revenue · bloque FORECAST ACTUAL del mes seleccionado. Ya incluye los ajustes.">i</button></span>
+    <strong>{{ kpis.forecast_current|money }}</strong>
+    <small>{{ forecast.totals.change_pct|percent }} frente al forecast anterior</small>
+  </article>
+  <article class="kpi">
+    <span>Ajustes incluidos <button class="info" aria-label="Cálculo de ajustes" data-tooltip="Importe del bloque AJUSTES CON BOLSA O REDUCCIONES. Horas a tarifa = ajuste ÷ 28,36 €/h. Horas de equipo = horas a tarifa ÷ eficiencia ponderada por las horas CLIENTE incurridas en cada tarea.">i</button></span>
+    <strong>{{ kpis.forecast_adjustment|money }}</strong>
+    <small>{{ kpis.adjustment_client_hours|hours }} a tarifa · {{ kpis.adjustment_team_hours|hours }} de equipo estimadas con eficiencia {{ kpis.weighted_efficiency|percent }}</small>
+  </article>
+  <article class="kpi">
+    <span>Horas facturables <button class="info" aria-label="Origen de horas facturables" data-tooltip="Suma directa de Total validado en todas las filas CLIENTE del HTML de incurrido. No se aplica el filtro de personas activas y las horas NTT no se incluyen.">i</button></span>
+    <strong>{{ kpis.incurred_hours|hours }}</strong>
+    <small>{{ kpis.active_incurred_hours|hours }} equipo activo · {{ kpis.outside_active_hours|hours }} fuera del equipo activo</small>
+  </article>
+  <article class="kpi">
+    <span>Horas pendientes <button class="info" aria-label="Cálculo de horas pendientes" data-tooltip="Para cada persona activa: máximo entre H. NTT planificadas en Equipo menos horas CLIENTE validadas y cero. Después se suman los resultados individuales.">i</button></span>
+    <strong>{{ kpis.pending_hours|hours }}</strong>
+    <small>{{ kpis.people_with_plan }} personas con planificación</small>
+  </article>
+</section>
+
+<section class="split-grid">
+  <article class="panel">
+    <div class="panel-head"><div><p class="eyebrow">Economía</p><h2>Evolución del forecast</h2></div><a href="economia.html">Ver detalle →</a></div>
+    <div class="comparison">
+      <div><span>Anterior</span><strong>{{ kpis.forecast_previous|money }}</strong></div>
+      <div class="arrow">→</div>
+      <div><span>Actual</span><strong>{{ kpis.forecast_current|money }}</strong></div>
+    </div>
+    <div class="bar"><span style="width: {{ [forecast.totals.change_pct * 100, 100]|min|round }}%"></span></div>
+    <p class="muted">Variación absoluta: {{ kpis.forecast_change|money }}</p>
+  </article>
+  <article class="panel dark-panel">
+    <div class="panel-head"><div><p class="eyebrow">Capacidad</p><h2>Horas del equipo</h2></div><a href="equipo.html">Ver personas →</a></div>
+    <dl class="metric-list">
+      <div><dt>Capacidad teórica</dt><dd>{{ kpis.capacity_hours|hours }}</dd></div>
+      <div><dt>Planificadas en GECO</dt><dd>{{ kpis.planned_hours|hours }}</dd></div>
+      <div><dt>Ingreso planificado</dt><dd>{{ kpis.planned_income|money }}</dd></div>
+      <div><dt>Facturación validada a tarifa</dt><dd>{{ kpis.estimated_incurred_income|money }}</dd></div>
+    </dl>
+  </article>
+</section>
+
+<section class="panel">
+  <div class="panel-head"><div><p class="eyebrow">Rentabilidad</p><h2>Costes y margen con y sin ajustes</h2></div><a href="economia.html">Ver economía →</a></div>
+  <div class="financial-grid">
+    <article><span>Total Costs sin ajustes <button class="info" aria-label="Costes sin ajustes" data-tooltip="Total Costs del forecast actual menos los costes declarados en el bloque Ajustes.">i</button></span><strong>{{ forecast.financials.costs.without_adjustment|money }}</strong></article>
+    <article><span>Total Costs con ajustes <button class="info" aria-label="Costes con ajustes" data-tooltip="Total Costs del forecast actual, que ya contiene los ajustes del mes.">i</button></span><strong>{{ forecast.financials.costs.with_adjustment|money }}</strong></article>
+    <article><span>Contract Margin sin ajustes <button class="info" aria-label="Margen sin ajustes" data-tooltip="Contract Margin actual menos el margen aportado por los ajustes: ingreso del ajuste menos coste del ajuste.">i</button></span><strong>{{ forecast.financials.margin.without_adjustment|money }}</strong><small>{{ forecast.financials.margin.without_pct|percent }}</small></article>
+    <article class="featured"><span>Contract Margin con ajustes <button class="info" aria-label="Margen con ajustes" data-tooltip="Contract Margin del bloque FORECAST ACTUAL. Ya incluye el efecto de los ajustes.">i</button></span><strong>{{ forecast.financials.margin.with_adjustment|money }}</strong><small>{{ forecast.financials.margin.with_pct|percent }}</small></article>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-head"><div><p class="eyebrow">Atención</p><h2>Mayor volumen pendiente</h2></div><span>{{ kpis.absence_events }} eventos de ausencia</span></div>
+  <div class="people-cards">
+    {% for person in people|sort(attribute='pending_hours', reverse=true) %}
+      {% if person.pending_hours > 0 and loop.index <= 6 %}
+      <article>
+        <span>{{ person.team }} / {{ person.unit }}</span>
+        <h3>{{ person.name }}</h3>
+        <strong>{{ person.pending_hours|hours }}</strong>
+        <div class="progress"><i style="width: {{ [person.progress_pct * 100, 100]|min|round }}%"></i></div>
+        <small>{{ person.incurred_hours|hours }} CLIENTE de {{ person.planned_hours|hours }}</small>
+      </article>
+      {% endif %}
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

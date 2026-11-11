@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Calidad de datos · {{ period_label }}{% endblock %}
+{% block content %}
+<section class="page-title"><p class="eyebrow">Trazabilidad</p><h1>Fuentes y calidad</h1><p>Qué se ha leído, cuándo y qué necesita revisión.</p></section>
+<section class="split-grid">
+  <article class="panel"><div class="panel-head"><div><p class="eyebrow">Entradas</p><h2>Ficheros procesados</h2></div></div>
+    <dl class="source-list">{% for source in quality.sources %}<div><dt>{{ source.label }}</dt><dd>{{ source.file }}<small>{{ source.size_mb|decimal }} MB · {{ source.modified }}</small></dd></div>{% endfor %}</dl>
+  </article>
+  <article class="panel {{ 'warning-panel' if quality.warnings else 'success-panel' }}"><div class="panel-head"><div><p class="eyebrow">Resultado</p><h2>{{ quality.warnings|length }} avisos</h2></div></div>
+    {% if quality.warnings %}<ul>{% for warning in quality.warnings %}<li>{{ warning }}</li>{% endfor %}</ul>{% else %}<p>No se han detectado incidencias de enlace o códigos desconocidos.</p>{% endif %}
+  </article>
+</section>
+<section class="split-grid">
+  <article class="panel"><h2>Nombres del incurrido sin enlace</h2><p class="muted">{{ quality.unmatched_actual|join(', ') if quality.unmatched_actual else 'Ninguno' }}</p></article>
+  <article class="panel"><h2>Nombres del horario sin enlace</h2><p class="muted">{{ quality.unmatched_schedule|join(', ') if quality.unmatched_schedule else 'Ninguno' }}</p></article>
+</section>
+<section class="panel methodology"><p class="eyebrow">Reglas iniciales</p><h2>Metodología aplicada</h2><ol><li>El mes se localiza por fechas Excel; Ajustes se alinea por posición porque sus fechas están desplazadas.</li><li>El forecast actual ya incluye ajustes; el escenario sin ajustes se obtiene restándolos.</li><li>Solo se agregan personas de la primera tabla de Equipo y se excluyen {{ inactive_count }} filas rojas inactivas.</li><li>Las tablas resumen de Equipo se muestran aparte y no se vuelven a sumar.</li><li>Las horas facturables proceden de CLIENTE; las horas NTT se conservan por separado.</li><li>La facturación estimada usa horas CLIENTE × 28,36 €/h.</li></ol></section>
+{% endblock %}

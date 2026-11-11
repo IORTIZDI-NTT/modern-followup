@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Seguimiento Modernización L4{% endblock %}</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <a class="brand" href="index.html"><span>one</span>Followup</a>
+      <span class="period">{{ period_label }}</span>
+    </div>
+    <nav aria-label="Navegación principal">
+      <a class="{{ 'active' if current_page == 'index.html' }}" href="index.html">Resumen</a>
+      <a class="{{ 'active' if current_page == 'economia.html' }}" href="economia.html">Economía</a>
+      <a class="{{ 'active' if current_page == 'equipo.html' }}" href="equipo.html">Equipo</a>
+      <a class="{{ 'active' if current_page == 'calendario.html' }}" href="calendario.html">Calendario</a>
+      <a class="{{ 'active' if current_page == 'calidad.html' }}" href="calidad.html">Datos</a>
+    </nav>
+  </header>
+  <main class="page">
+    {% block content %}{% endblock %}
+  </main>
+  <footer>
+    Generado el {{ generated_at }} · Tarifa cliente {{ client_rate|money }}/h · Periodo {{ period }}
+  </footer>
+  <script>
+    document.querySelectorAll('[data-table-filter]').forEach(input => {
+      const table = document.getElementById(input.dataset.tableFilter);
+      input.addEventListener('input', () => {
+        const query = input.value.toLocaleLowerCase('es');
+        table.querySelectorAll('tbody tr').forEach(row => {
+          row.hidden = !row.textContent.toLocaleLowerCase('es').includes(query);
+        });
+      });
+    });
+  </script>
+</body>
+</html>
