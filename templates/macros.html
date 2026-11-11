@@ -1,0 +1,7 @@
+{% macro tip(text) -%}
+<button class="info" type="button" aria-label="Explicación del cálculo" data-tooltip="{{ text }}" title="{{ text }}">i</button>
+{%- endmacro %}
+
+{% macro calc(value, text, classes='') -%}
+<span class="calculated {{ classes }}" tabindex="0" data-tooltip="{{ text }}" title="{{ text }}">{{ value }}</span>
+{%- endmacro %}

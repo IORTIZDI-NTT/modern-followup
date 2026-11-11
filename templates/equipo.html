@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros.html" import calc, tip %}
 {% block title %}Equipo · {{ period_label }}{% endblock %}
 {% block content %}
 <section class="page-title"><p class="eyebrow">Equipo</p><h1>Horas, capacidad e ingreso</h1><p>Plan GECO cruzado con las horas CLIENTE facturables y el horario laboral mensual.</p></section>
@@ -10,14 +11,14 @@
     <tr>
       <td><strong>{{ person.name }}</strong><small>{{ person.unit }}</small></td>
       <td><span class="tag">{{ person.team }}</span></td>
-      <td>{{ person.planned_hours|hours }}</td>
-      <td>{{ person.client_hours|hours }}</td>
-      <td>{{ person.ntt_hours|hours }}</td>
-      <td class="{{ 'warning-text' if person.pending_hours > 0 else 'positive' }}">{{ person.pending_hours|hours }}</td>
-      <td>{{ person.capacity_hours|hours }}</td>
-      <td>{{ person.efficiency|percent }}</td>
-      <td>{{ person.planned_income|money }}</td>
-      <td>{{ person.estimated_incurred_income|money }}</td>
+      <td>{{ calc(person.planned_hours|hours, 'GECO · Equipo · H. NTT del perfil para el mes.') }}</td>
+      <td>{{ calc(person.client_hours|hours, 'HTML de incurrido · Total validado de la fila CLIENTE del perfil.') }}</td>
+      <td>{{ calc(person.ntt_hours|hours, 'HTML de incurrido · Total validado de la fila NTT del perfil.') }}</td>
+      <td class="{{ 'warning-text' if person.pending_hours > 0 else 'positive' }}">{{ calc(person.pending_hours|hours, 'max(Plan GECO − horas CLIENTE, 0).') }}</td>
+      <td>{{ calc(person.capacity_hours|hours, 'Horario L–V del perfil × número de cada día laborable del mes.') }}</td>
+      <td>{{ calc(person.efficiency|percent, 'Ingresos · GVA ÷ NTT del perfil para el mes.') }}</td>
+      <td>{{ calc(person.planned_income|money, 'GECO · Ingresos · I. NTT del perfil para el mes.') }}</td>
+      <td>{{ calc(person.estimated_incurred_income|money, 'Horas CLIENTE validadas × 28,36 €/h.') }}</td>
     </tr>
     {% endfor %}
   </tbody>
@@ -28,20 +29,20 @@
 <section class="page-title section-title"><p class="eyebrow">Eficiencia</p><h2>Perfiles DUMMY</h2><p>Perfiles no nominales que concentran horas de eficiencia. Participan en cálculos y conciliaciones, pero no en el listado de empleados activos.</p></section>
 <section class="panel table-panel"><div class="table-wrap"><table>
   <thead><tr><th>Perfil</th><th>Equipo</th><th>Tarea GECO</th><th>Horas CLIENTE</th><th>Horas NTT</th><th>Eficiencia</th><th>Facturación</th></tr></thead>
-  <tbody>{% for person in dummy_profiles %}<tr><td><strong>{{ person.name }}</strong></td><td><span class="tag dummy-tag">{{ person.team }}</span></td><td>{{ person.task }}</td><td>{{ person.client_hours|hours }}</td><td>{{ person.ntt_hours|hours }}</td><td>Perfil de eficiencia</td><td>{{ person.estimated_incurred_income|money }}</td></tr>{% endfor %}</tbody>
+  <tbody>{% for person in dummy_profiles %}<tr><td><strong>{{ person.name }}</strong></td><td><span class="tag dummy-tag">{{ person.team }}</span></td><td>{{ person.task }}</td><td>{{ calc(person.client_hours|hours, 'Total validado CLIENTE del perfil DUMMY.') }}</td><td>{{ calc(person.ntt_hours|hours, 'Total validado NTT del perfil DUMMY.') }}</td><td>{{ calc('Perfil de eficiencia', 'Clasificado como DUMMY en el horario; no entra en el denominador de eficiencia de empleados.') }}</td><td>{{ calc(person.estimated_incurred_income|money, 'Horas CLIENTE DUMMY × 28,36 €/h.') }}</td></tr>{% endfor %}</tbody>
 </table></div></section>
 {% endif %}
 
 <section class="page-title section-title"><p class="eyebrow">Resúmenes GECO</p><h2>Agregados de la hoja Equipo</h2><p>Se muestran como referencia, pero no participan en los totales anteriores para evitar duplicar horas.</p></section>
 <section class="panel table-panel"><div class="panel-head"><div><p class="eyebrow">Cálculo principal</p><h2>Por equipo del horario laboral</h2></div></div><div class="table-wrap"><table>
   <thead><tr><th>Equipo</th><th>Perfiles</th><th>Plan GECO</th><th>Horas CLIENTE</th><th>Horas NTT</th><th>Ingreso planificado</th></tr></thead>
-  <tbody>{% for row in computed_team_totals %}<tr><td><strong>{{ row.team }}</strong></td><td>{{ row.profiles }}</td><td>{{ row.planned_hours|hours }}</td><td>{{ row.client_hours|hours }}</td><td>{{ row.ntt_hours|hours }}</td><td>{{ row.planned_income|money }}</td></tr>{% endfor %}</tbody>
+  <tbody>{% for row in computed_team_totals %}<tr><td><strong>{{ row.team }}</strong></td><td>{{ calc(row.profiles, 'Número de empleados/perfiles asignados a este equipo en el horario laboral.') }}</td><td>{{ calc(row.planned_hours|hours, 'Suma de H. NTT de GECO para los perfiles del equipo del horario.') }}</td><td>{{ calc(row.client_hours|hours, 'Suma de horas CLIENTE validadas para el equipo del horario.') }}</td><td>{{ calc(row.ntt_hours|hours, 'Suma de horas NTT validadas para el equipo del horario.') }}</td><td>{{ calc(row.planned_income|money, 'Suma de I. NTT de Ingresos para el equipo del horario.') }}</td></tr>{% endfor %}</tbody>
 </table></div></section>
 <section class="split-grid">
   {% for title, rows in [('Referencia GECO por rol/tarea', team_summaries.by_team), ('Referencia GECO por unidad', team_summaries.by_unit)] %}
   <article class="panel table-panel"><div class="panel-head"><div><h2>{{ title }}</h2></div></div><div class="table-wrap"><table>
     <thead><tr><th>Grupo</th><th>H. NTT</th><th>H. objetivo</th><th>H. GVA</th><th>H. forecast</th></tr></thead>
-    <tbody>{% for row in rows %}<tr class="{{ 'summary-total' if row.label == 'TOTAL' }}"><td><strong>{{ row.label }}</strong></td><td>{{ row.planned_hours|hours }}</td><td>{{ row.objective_hours|hours }}</td><td>{{ row.gva_hours|hours }}</td><td>{{ row.forecast_hours|hours }}</td></tr>{% endfor %}</tbody>
+    <tbody>{% for row in rows %}<tr class="{{ 'summary-total' if row.label == 'TOTAL' }}"><td><strong>{{ row.label }}</strong></td><td>{{ calc(row.planned_hours|hours, 'Valor H. NTT de la tabla resumen original de GECO; no se suma al detalle nominal.') }}</td><td>{{ calc(row.objective_hours|hours, 'Valor H. OBJ de la tabla resumen original de GECO; referencia no agregada.') }}</td><td>{{ calc(row.gva_hours|hours, 'Valor H. GVA de la tabla resumen original de GECO; referencia no agregada.') }}</td><td>{{ calc(row.forecast_hours|hours, 'Valor H. FCAST de la tabla resumen original de GECO; referencia no agregada.') }}</td></tr>{% endfor %}</tbody>
   </table></div></article>
   {% endfor %}
 </section>

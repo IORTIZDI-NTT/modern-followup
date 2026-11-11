@@ -71,6 +71,11 @@ h3 { margin: 8px 0 14px; font-size: 17px; }
 .info { position: relative; display: inline-grid; place-items: center; width: 18px; height: 18px; margin-left: 4px; padding: 0; border: 1px solid currentColor; border-radius: 50%; color: inherit; background: transparent; font-family: inherit; font-size: 11px; font-weight: 800; line-height: 1; cursor: help; opacity: .68; vertical-align: text-bottom; }
 .info::after { position: absolute; z-index: 30; left: 50%; bottom: calc(100% + 10px); width: min(310px, 70vw); padding: 10px 12px; border-radius: 9px; color: white; background: #0b1b3a; box-shadow: 0 8px 24px rgba(0,0,0,.16); content: attr(data-tooltip); font-size: 11px; font-weight: 500; line-height: 1.45; text-align: left; transform: translate(-50%, 4px); opacity: 0; visibility: hidden; pointer-events: none; transition: .14s ease; }
 .info:hover::after, .info:focus::after { transform: translate(-50%, 0); opacity: 1; visibility: visible; }
+.calculated { position: relative; display: inline-block; border-bottom: 1px dotted #6f87b8; cursor: help; }
+.calculated::after { position: absolute; z-index: 40; left: 50%; bottom: calc(100% + 9px); width: min(330px, 72vw); padding: 10px 12px; border-radius: 9px; color: white; background: #0b1b3a; box-shadow: 0 8px 24px rgba(0,0,0,.18); content: attr(data-tooltip); font-size: 11px; font-weight: 500; line-height: 1.45; white-space: normal; text-align: left; transform: translate(-50%, 4px); opacity: 0; visibility: hidden; pointer-events: none; transition: .14s ease; }
+.calculated:hover::after, .calculated:focus::after { transform: translate(-50%, 0); opacity: 1; visibility: visible; }
+td:last-child .calculated::after, th:last-child .calculated::after { left: auto; right: 0; transform: translate(0, 4px); }
+td:last-child .calculated:hover::after, td:last-child .calculated:focus::after, th:last-child .calculated:hover::after, th:last-child .calculated:focus::after { transform: translate(0, 0); }
 .people-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 .people-cards article { padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: #fafbfd; }
 .people-cards article > span, .people-cards small { color: var(--muted); font-size: 11px; }

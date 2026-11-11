@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros.html" import calc, tip %}
 {% block title %}Resumen · {{ period_label }}{% endblock %}
 {% block content %}
 <section class="hero">
@@ -20,23 +21,23 @@
 <section class="kpi-grid">
   <article class="kpi kpi-primary">
     <span>Forecast actual <button class="info" aria-label="Origen del forecast actual" data-tooltip="Hoja Forecast · fila Total / Net Revenue · bloque FORECAST ACTUAL del mes seleccionado. Ya incluye los ajustes.">i</button></span>
-    <strong>{{ kpis.forecast_current|money }}</strong>
-    <small>{{ kpis.forecast_current_client_hours|hours }} a {{ client_rate|money }}/h · {{ forecast.totals.change_pct|percent }} frente al anterior</small>
+    <strong>{{ calc(kpis.forecast_current|money, 'GECO · Forecast · Total / Net Revenue del bloque FORECAST ACTUAL para el mes. Ya incluye los ajustes.') }}</strong>
+    <small>{{ calc(kpis.forecast_current_client_hours|hours, 'Forecast actual ÷ tarifa cliente de 28,36 €/h.') }} a {{ client_rate|money }}/h · {{ calc(forecast.totals.change_pct|percent, '(Forecast actual − forecast anterior) ÷ forecast anterior.') }} frente al anterior</small>
   </article>
   <article class="kpi">
     <span>Ajustes incluidos <button class="info" aria-label="Cálculo de ajustes" data-tooltip="Importe del bloque AJUSTES CON BOLSA O REDUCCIONES. Horas a tarifa = ajuste ÷ 28,36 €/h. Horas de equipo = horas a tarifa ÷ eficiencia ponderada por las horas CLIENTE incurridas en cada tarea.">i</button></span>
-    <strong>{{ kpis.forecast_adjustment|money }}</strong>
-    <small>{{ kpis.adjustment_client_hours|hours }} a tarifa · {{ kpis.adjustment_team_hours|hours }} de equipo estimadas con eficiencia {{ kpis.weighted_efficiency|percent }}</small>
+    <strong>{{ calc(kpis.forecast_adjustment|money, 'GECO · bloque AJUSTES CON BOLSA O REDUCCIONES, alineado por posición con el mes del forecast.') }}</strong>
+    <small>{{ calc(kpis.adjustment_client_hours|hours, 'Importe del ajuste ÷ 28,36 €/h.') }} a tarifa · {{ calc(kpis.adjustment_team_hours|hours, 'Horas equivalentes a tarifa ÷ eficiencia ponderada de empleados.') }} de equipo estimadas con eficiencia {{ calc(kpis.weighted_efficiency|percent, 'Media de la eficiencia de Ingresos ponderada por horas CLIENTE de empleados; excluye DUMMY.') }}</small>
   </article>
   <article class="kpi">
     <span>Horas facturables <button class="info" aria-label="Origen de horas facturables" data-tooltip="Suma directa de Total validado en todas las filas CLIENTE del HTML de incurrido. No se aplica el filtro de personas activas y las horas NTT no se incluyen.">i</button></span>
-    <strong>{{ kpis.incurred_hours|hours }}</strong>
-    <small>{{ kpis.employee_client_hours|hours }} empleados · {{ kpis.dummy_hours|hours }} perfiles DUMMY</small>
+    <strong>{{ calc(kpis.incurred_hours|hours, 'Suma de Total validado de todas las filas CLIENTE del HTML de incurrido.') }}</strong>
+    <small>{{ calc(kpis.employee_client_hours|hours, 'Horas CLIENTE enlazadas con empleados activos.') }} empleados · {{ calc(kpis.dummy_hours|hours, 'Horas CLIENTE enlazadas con perfiles cuyo equipo en el horario es DUMMY.') }} perfiles DUMMY</small>
   </article>
   <article class="kpi">
     <span>Horas pendientes <button class="info" aria-label="Cálculo de horas pendientes" data-tooltip="Para cada persona activa: máximo entre H. NTT planificadas en Equipo menos horas CLIENTE validadas y cero. Después se suman los resultados individuales.">i</button></span>
-    <strong>{{ kpis.pending_hours|hours }}</strong>
-    <small>{{ kpis.people_with_plan }} personas con planificación</small>
+    <strong>{{ calc(kpis.pending_hours|hours, 'Suma por perfil de max(H. NTT planificadas en Equipo − horas CLIENTE, 0).') }}</strong>
+    <small>{{ calc(kpis.people_with_plan, 'Número de perfiles de cálculo con H. NTT planificadas mayor que cero.') }} personas con planificación</small>
   </article>
 </section>
 
@@ -44,20 +45,20 @@
   <article class="panel">
     <div class="panel-head"><div><p class="eyebrow">Economía</p><h2>Evolución del forecast</h2></div><a href="economia.html">Ver detalle →</a></div>
     <div class="comparison">
-      <div><span>Anterior</span><strong>{{ kpis.forecast_previous|money }}</strong></div>
+      <div><span>Anterior</span><strong>{{ calc(kpis.forecast_previous|money, 'GECO · Forecast · Total / Net Revenue del bloque FORECAST ANTERIOR.') }}</strong></div>
       <div class="arrow">→</div>
-      <div><span>Actual</span><strong>{{ kpis.forecast_current|money }}</strong></div>
+      <div><span>Actual</span><strong>{{ calc(kpis.forecast_current|money, 'GECO · Forecast · Total / Net Revenue del bloque FORECAST ACTUAL.') }}</strong></div>
     </div>
     <div class="bar"><span style="width: {{ [forecast.totals.change_pct * 100, 100]|min|round }}%"></span></div>
-    <p class="muted">Variación absoluta: {{ kpis.forecast_change|money }}</p>
+    <p class="muted">Variación absoluta: {{ calc(kpis.forecast_change|money, 'Forecast actual − forecast anterior, según el bloque de diferencia de GECO.') }}</p>
   </article>
   <article class="panel dark-panel">
     <div class="panel-head"><div><p class="eyebrow">Capacidad</p><h2>Horas del equipo</h2></div><a href="equipo.html">Ver personas →</a></div>
     <dl class="metric-list">
-      <div><dt>Capacidad teórica</dt><dd>{{ kpis.capacity_hours|hours }}</dd></div>
-      <div><dt>Planificadas en GECO</dt><dd>{{ kpis.planned_hours|hours }}</dd></div>
-      <div><dt>Ingreso planificado</dt><dd>{{ kpis.planned_income|money }}</dd></div>
-      <div><dt>Facturación validada a tarifa</dt><dd>{{ kpis.estimated_incurred_income|money }}</dd></div>
+      <div><dt>Capacidad teórica</dt><dd>{{ calc(kpis.capacity_hours|hours, 'Suma del horario L–V de cada perfil multiplicado por los días de la semana presentes en el mes.') }}</dd></div>
+      <div><dt>Planificadas en GECO</dt><dd>{{ calc(kpis.planned_hours|hours, 'Suma de H. NTT del mes para empleados activos y perfiles DUMMY; no incluye tablas resumen.') }}</dd></div>
+      <div><dt>Ingreso planificado</dt><dd>{{ calc(kpis.planned_income|money, 'Suma de I. NTT de la hoja Ingresos para los perfiles incluidos.') }}</dd></div>
+      <div><dt>Facturación validada a tarifa</dt><dd>{{ calc(kpis.estimated_incurred_income|money, 'Total de horas CLIENTE validadas × 28,36 €/h.') }}</dd></div>
     </dl>
   </article>
 </section>
@@ -65,10 +66,10 @@
 <section class="panel">
   <div class="panel-head"><div><p class="eyebrow">Rentabilidad</p><h2>Costes y margen con y sin ajustes</h2></div><a href="economia.html">Ver economía →</a></div>
   <div class="financial-grid">
-    <article><span>Total Costs sin ajustes <button class="info" aria-label="Costes sin ajustes" data-tooltip="Total Costs del forecast actual menos los costes declarados en el bloque Ajustes.">i</button></span><strong>{{ forecast.financials.costs.without_adjustment|money }}</strong></article>
-    <article><span>Total Costs con ajustes <button class="info" aria-label="Costes con ajustes" data-tooltip="Total Costs del forecast actual, que ya contiene los ajustes del mes.">i</button></span><strong>{{ forecast.financials.costs.with_adjustment|money }}</strong></article>
-    <article><span>Contract Margin sin ajustes <button class="info" aria-label="Margen sin ajustes" data-tooltip="Contract Margin actual menos el margen aportado por los ajustes: ingreso del ajuste menos coste del ajuste.">i</button></span><strong>{{ forecast.financials.margin.without_adjustment|money }}</strong><small>{{ forecast.financials.margin.without_pct|percent }}</small></article>
-    <article class="featured"><span>Contract Margin con ajustes <button class="info" aria-label="Margen con ajustes" data-tooltip="Contract Margin del bloque FORECAST ACTUAL. Ya incluye el efecto de los ajustes.">i</button></span><strong>{{ forecast.financials.margin.with_adjustment|money }}</strong><small>{{ forecast.financials.margin.with_pct|percent }}</small></article>
+    <article><span>Total Costs sin ajustes {{ tip('Total Costs actual menos el coste declarado en Ajustes.') }}</span><strong>{{ calc(forecast.financials.costs.without_adjustment|money, 'Total Costs del forecast actual − coste del ajuste.') }}</strong></article>
+    <article><span>Total Costs con ajustes {{ tip('Total Costs de FORECAST ACTUAL; ya contiene los ajustes.') }}</span><strong>{{ calc(forecast.financials.costs.with_adjustment|money, 'GECO · Forecast · Total / Total Costs del bloque actual.') }}</strong></article>
+    <article><span>Contract Margin sin ajustes {{ tip('Margen actual menos ingreso del ajuste más coste del ajuste.') }}</span><strong>{{ calc(forecast.financials.margin.without_adjustment|money, 'Contract Margin actual − (ingreso del ajuste − coste del ajuste).') }}</strong><small>{{ calc(forecast.financials.margin.without_pct|percent, 'Margen sin ajustes ÷ Net Revenue sin ajustes.') }}</small></article>
+    <article class="featured"><span>Contract Margin con ajustes {{ tip('Contract Margin del FORECAST ACTUAL.') }}</span><strong>{{ calc(forecast.financials.margin.with_adjustment|money, 'GECO · Forecast · Total / Contract Margin del bloque actual.') }}</strong><small>{{ calc(forecast.financials.margin.with_pct|percent, 'Contract Margin actual ÷ Net Revenue actual.') }}</small></article>
   </div>
 </section>
 
@@ -80,9 +81,9 @@
       <article>
         <span>{{ person.team }} / {{ person.unit }}</span>
         <h3>{{ person.name }}</h3>
-        <strong>{{ person.pending_hours|hours }}</strong>
+        <strong>{{ calc(person.pending_hours|hours, 'max(H. NTT planificadas de la persona − horas CLIENTE validadas, 0).') }}</strong>
         <div class="progress"><i style="width: {{ [person.progress_pct * 100, 100]|min|round }}%"></i></div>
-        <small>{{ person.incurred_hours|hours }} CLIENTE de {{ person.planned_hours|hours }}</small>
+        <small>{{ calc(person.incurred_hours|hours, 'Total validado CLIENTE del HTML para esta persona.') }} CLIENTE de {{ calc(person.planned_hours|hours, 'H. NTT del mes en la hoja Equipo.') }}</small>
       </article>
       {% endif %}
     {% endfor %}
