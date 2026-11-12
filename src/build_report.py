@@ -26,11 +26,12 @@ MONTHS_ES = (
     "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
 )
 WEEKDAY_COLUMNS = {0: "L", 1: "M", 2: "X", 3: "J", 4: "V"}
-ABSENCE_LABELS = {
-    "V": "Vacaciones",
-    "LA": "Ausencia / licencia",
+NON_BILLABLE_LABELS = {
     "F": "Festivo",
     "FI": "Festivo",
+    "LA": "Ausencia / licencia",
+    "TN": "Trabajo no facturable",
+    "V": "Vacaciones",
 }
 
 
@@ -372,7 +373,7 @@ def load_incurred(path: Path, target: datetime) -> tuple[list[dict[str, Any]], l
     frame = pd.read_html(path, decimal=",", thousands=None, keep_default_na=False)[0]
     total_column = next(column for column in frame.columns if str(column).strip().lower() == "total validado")
     records: dict[str, dict[str, Any]] = {}
-    absences: list[dict[str, Any]] = []
+    non_billable_events: list[dict[str, Any]] = []
     codes: set[str] = set()
     day_columns = [column for column in frame.columns if re.fullmatch(r"\d{2}", str(column))]
     for _, row in frame.iterrows():
@@ -411,16 +412,16 @@ def load_incurred(path: Path, target: datetime) -> tuple[list[dict[str, Any]], l
                 continue
             record["daily_codes"][day] = raw_value
             key = (normalize_name(name), date.date(), raw_value)
-            if any(event["key"] == key for event in absences):
+            if any(event["key"] == key for event in non_billable_events):
                 continue
             codes.add(raw_value)
-            absences.append({
+            non_billable_events.append({
                 "key": key,
                 "name": name,
                 "date": date,
                 "date_label": date.strftime("%d/%m/%Y"),
                 "code": raw_value,
-                "label": ABSENCE_LABELS.get(raw_value, "Ausencia (código sin clasificar)"),
+                "label": NON_BILLABLE_LABELS.get(raw_value, "Código no facturable sin clasificar"),
             })
     result = []
     for record in records.values():
@@ -428,8 +429,8 @@ def load_incurred(path: Path, target: datetime) -> tuple[list[dict[str, Any]], l
         # CLIENTE representa las horas que se facturarán al cliente este mes.
         record["incurred_hours"] = record["client_hours"]
         result.append(record)
-    absences.sort(key=lambda item: (item["date"], item["name"]))
-    return result, absences, codes
+    non_billable_events.sort(key=lambda item: (item["date"], item["name"]))
+    return result, non_billable_events, codes
 
 
 def merge_people(
@@ -510,7 +511,7 @@ def build_calendar(people: list[dict[str, Any]], target: datetime) -> dict[str, 
             if person.get("is_dummy") and actual > 0:
                 status = "dummy"
             elif code:
-                status = "absence"
+                status = "non-billable"
             elif day_info["weekend"] and actual == 0:
                 status = "weekend"
             elif planned == 0 and actual > 0:
@@ -575,7 +576,7 @@ def build_context(data_dir: Path, target: datetime) -> dict[str, Any]:
         else:
             remaining_inactive_names.append(person["name"])
     team = [{**person, "is_dummy": False} for person in team_data["people"]] + dummy_people
-    incurred, absences, absence_codes = load_incurred(incurred_file, target)
+    incurred, non_billable_events, non_billable_codes = load_incurred(incurred_file, target)
     people = merge_people(team, income, schedule, incurred, remaining_inactive_names, quality)
     missing_team_names = [person["name"] for person in people if person["team"] == "SIN EQUIPO"]
     if missing_team_names:
@@ -586,9 +587,9 @@ def build_context(data_dir: Path, target: datetime) -> dict[str, Any]:
         quality.warnings.append(f"{len(quality.unmatched_actual)} nombres del incurrido no enlazan automáticamente con Equipo.")
     if quality.unmatched_schedule:
         quality.warnings.append(f"{len(quality.unmatched_schedule)} nombres del horario no enlazan automáticamente con Equipo.")
-    unknown_codes = sorted(code for code in absence_codes if code not in ABSENCE_LABELS)
+    unknown_codes = sorted(code for code in non_billable_codes if code not in NON_BILLABLE_LABELS)
     if unknown_codes:
-        quality.warnings.append("Códigos de ausencia pendientes de clasificar: " + ", ".join(unknown_codes))
+        quality.warnings.append("Códigos no facturables pendientes de clasificar: " + ", ".join(unknown_codes))
     totals = forecast["totals"]
     raw_client_hours = sum(record["client_hours"] for record in incurred)
     active_client_hours = sum(person["incurred_hours"] for person in people)
@@ -608,7 +609,7 @@ def build_context(data_dir: Path, target: datetime) -> dict[str, Any]:
         "planned_income": sum(person["planned_income"] for person in people),
         "estimated_incurred_income": raw_client_hours * CLIENT_RATE,
         "people_with_plan": sum(1 for person in people if person["planned_hours"] > 0),
-        "absence_events": len(absences),
+        "non_billable_events": len(non_billable_events),
     }
     kpis["hours_progress_pct"] = active_client_hours / kpis["planned_hours"] if kpis["planned_hours"] else 0.0
     efficiency_people = [person for person in people if not person.get("is_dummy")]
@@ -668,8 +669,6 @@ def build_context(data_dir: Path, target: datetime) -> dict[str, Any]:
         "inactive_count": len(remaining_inactive_names),
         "task_efficiencies": task_efficiencies,
         "calendar": build_calendar(people, target),
-        "absences": absences,
-        "absence_codes": sorted(absence_codes),
         "quality": quality,
         "kpis": kpis,
     }

@@ -15,7 +15,7 @@
   <span><i class="legend-under"></i> Por debajo</span>
   <span><i class="legend-over"></i> Por encima</span>
   <span><i class="legend-missing"></i> Sin horas CLIENTE</span>
-  <span><i class="legend-absence"></i> Ausencia</span>
+  <span><i class="legend-non-billable"></i> No facturable (F, LA, TN, V)</span>
   <span><i class="legend-dummy"></i> Perfil DUMMY</span>
 </section>
 
@@ -42,12 +42,5 @@
 </table></div></section>
 <aside class="note"><strong>Lectura de cada celda:</strong> el número principal son horas CLIENTE; el número pequeño es el horario esperado. Al pasar el cursor se muestran también las horas NTT.</aside>
 
-<section class="page-title section-title"><p class="eyebrow">Ausencias</p><h2>Eventos detectados</h2><p>{{ absences|length }} eventos · códigos {{ absence_codes|join(', ') if absence_codes else '—' }}</p></section>
-<section class="panel table-panel"><div class="table-wrap"><table>
-  <thead><tr><th>Fecha</th><th>Persona</th><th>Código</th><th>Clasificación</th></tr></thead>
-  <tbody>
-    {% for event in absences %}<tr><td>{{ event.date_label }}</td><td><strong>{{ event.name }}</strong></td><td><span class="tag">{{ event.code }}</span></td><td>{{ event.label }}</td></tr>{% else %}<tr><td colspan="4">No se han detectado eventos.</td></tr>{% endfor %}
-  </tbody>
-</table></div></section>
-<aside class="note">La capacidad se calcula con el horario L–V de la hoja mensual. Todavía no descuenta un calendario oficial de festivos; los códigos no reconocidos se muestran como alertas de calidad.</aside>
+<aside class="note">La capacidad se calcula con el horario L–V de la hoja mensual. Los códigos F, LA, TN y V se muestran en el calendario como tiempo no facturable y no se suman a las horas CLIENTE.</aside>
 {% endblock %}

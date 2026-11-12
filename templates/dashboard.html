@@ -74,7 +74,7 @@
 </section>
 
 <section class="panel">
-  <div class="panel-head"><div><p class="eyebrow">Atención</p><h2>Mayor volumen pendiente</h2></div><span>{{ kpis.absence_events }} eventos de ausencia</span></div>
+  <div class="panel-head"><div><p class="eyebrow">Atención</p><h2>Mayor volumen pendiente</h2></div><span>{{ kpis.non_billable_events }} registros no facturables</span></div>
   <div class="people-cards">
     {% for person in people|sort(attribute='pending_hours', reverse=true) %}
       {% if person.pending_hours > 0 and loop.index <= 6 %}

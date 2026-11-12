@@ -80,3 +80,23 @@ def test_incurred_keeps_client_daily_hours(tmp_path):
     assert records[0]["ntt_daily"] == {1: 1.0}
     assert events[0]["code"] == "V"
     assert codes == {"V"}
+
+
+def test_incurred_classifies_non_billable_codes(tmp_path):
+    report = tmp_path / "202611-Incurrido.html"
+    report.write_text(
+        "<table><tr><th>Usuario</th><th>Jira</th><th>01</th><th>02</th><th>03</th><th>04</th><th>Total validado</th></tr>"
+        "<tr><td>Ana</td><td>NTT</td><td>F</td><td>LA</td><td>TN</td><td>V</td><td>0</td></tr></table>",
+        encoding="utf-8",
+    )
+
+    records, events, codes = load_incurred(report, datetime(2026, 11, 1))
+
+    assert records[0]["client_hours"] == 0
+    assert codes == {"F", "LA", "TN", "V"}
+    assert {event["code"]: event["label"] for event in events} == {
+        "F": "Festivo",
+        "LA": "Ausencia / licencia",
+        "TN": "Trabajo no facturable",
+        "V": "Vacaciones",
+    }
